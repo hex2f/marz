@@ -1,8 +1,8 @@
 import createRouterFromDirectory, { recursivelyBuildRouterIndex } from "./framework/server/router"
 
+import path from "path"
 import { bundle } from "./framework/bundler"
 import createWorker from "./framework/server/worker"
-import path from "path"
 
 console.time("total - compile marz app")
 const ssrPagesDir = path.resolve("./pages")
@@ -32,7 +32,7 @@ const worker = await createWorker({
 	rscRouter,
 	ssrRouter,
 	manifest,
-	publicDir: path.resolve("./.marz/client")
+	publicDir: path.resolve("./.marz/client"),
 })
 console.timeEnd("create worker")
 

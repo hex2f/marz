@@ -1,8 +1,8 @@
 "use client"
 
 import React from "react"
-import Router from "./router/router"
 import { createRoot } from "react-dom/client"
+import Router from "./router/router"
 
 function MarzMount() {
 	return <Router />

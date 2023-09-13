@@ -1,18 +1,18 @@
-// @ts-expect-error - doesnt have any types, at least that i could find
-import { renderToPipeableStream } from "react-server-dom-webpack/server.node"
-import { renderToReadableStream } from "react-dom/server"
 import path from "path"
 import stream from "stream"
+import { renderToReadableStream } from "react-dom/server"
+// @ts-expect-error - doesnt have any types, at least that i could find
+import { renderToPipeableStream } from "react-server-dom-webpack/server.node"
 import MarzMount from "./mount"
 
 export default async function createWorker({
 	rscRouter,
 	ssrRouter,
 	manifest,
-	publicDir
+	publicDir,
 }: {
-	rscRouter: (route: string) => Promise<JSX.Element|null>
-	ssrRouter: (route: string) => Promise<JSX.Element|null>
+	rscRouter: (route: string) => Promise<JSX.Element | null>
+	ssrRouter: (route: string) => Promise<JSX.Element | null>
 	manifest: Record<string, object>
 	publicDir: string
 }) {
@@ -36,7 +36,7 @@ export default async function createWorker({
 				const route = await rscRouter(decodeURIComponent(location ?? "/"))
 				const html = await renderToPipeableStream(route, manifest)
 				const writer = new stream.PassThrough()
-				
+
 				// TODO: figure out how to convert this to a ReadableStream properly cause this is so ugly lol
 				const htmlStr = (await new Promise((res) => {
 					let string = ""
@@ -53,7 +53,7 @@ export default async function createWorker({
 
 				return new Response(htmlStr, {
 					headers: {
-						"Content-Type": "application/json"
+						"Content-Type": "application/json",
 					},
 				})
 			} else {

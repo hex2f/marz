@@ -1,9 +1,9 @@
 "use client"
 
 // @ts-expect-error - no typings for "use" yet
-import React, { startTransition, useContext, useState, use, useEffect } from "react"
+import React, { startTransition, use, useEffect, useState } from "react"
 // @ts-expect-error - no typings yet
-import { createFromFetch, createFromReadableStream } from "react-server-dom-webpack/client.browser"
+import { createFromFetch } from "react-server-dom-webpack/client.browser"
 
 import RouterContext from "./context"
 
@@ -32,13 +32,12 @@ export default function Router() {
 		// 	setCache(nextCache)
 		// })
 	}
-	
-	
+
 	function navigate(nextLocation: string) {
 		console.log("navigate", nextLocation)
 		window.history.pushState(null, "", nextLocation)
 		startTransition(() => {
-			setLocation(nextLocation)		
+			setLocation(nextLocation)
 		})
 	}
 
@@ -51,7 +50,7 @@ export default function Router() {
 		window.addEventListener("popstate", handlePopState)
 		return () => window.removeEventListener("popstate", handlePopState)
 	}, [])
-	
+
 	return <RouterContext.Provider value={{ location, navigate, refresh }}>{use(content)}</RouterContext.Provider>
 }
 

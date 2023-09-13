@@ -1,5 +1,5 @@
-import fs from "fs/promises"
 import path from "path"
+import fs from "fs/promises"
 
 const environment = process.env.NODE_ENV || "development"
 
@@ -19,7 +19,7 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 	const clientDeps = await resolveClientComponentDependencies(entrypoints, ignoredClientDeps)
 
 	const clientOutPath = path.join(outPath, "client")
-	
+
 	await fs.mkdir(clientOutPath)
 	await fs.mkdir(path.join(outPath, "server"))
 	await fs.mkdir(path.join(outPath, "server", "routes"))
@@ -45,15 +45,12 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 	// there definitely is a better way to do all this,
 	// this code was thrown together in a half-lucid sleep-deprived state
 	const appRoot = path.resolve(path.join(outDir, ".."))
-	const clientDepsMap = Array.from(clientDeps.values()).reduce(
-		(acc, dep) => {
-			const fileName = dep.slice(appRoot.length)
-			const withoutExtension = fileName.split(".").slice(0, -1).join(".")
-			acc[withoutExtension] = { path: dep, fileName, withoutExtension }
-			return acc
-		},
-		{} as Record<string, { path: string; fileName: string; withoutExtension: string }>,
-	)
+	const clientDepsMap = Array.from(clientDeps.values()).reduce((acc, dep) => {
+		const fileName = dep.slice(appRoot.length)
+		const withoutExtension = fileName.split(".").slice(0, -1).join(".")
+		acc[withoutExtension] = { path: dep, fileName, withoutExtension }
+		return acc
+	}, {} as Record<string, { path: string; fileName: string; withoutExtension: string }>)
 
 	const manifest = client.outputs.reduce((acc, output) => {
 		const fileName = output.path.slice(clientOutPath.length)
@@ -62,7 +59,8 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 		if (withoutExtension in clientDepsMap) {
 			// todo: handle exports properly
 			for (const name of ["", "*", "default"]) {
-				if (clientDepsMap[withoutExtension].fileName in acc === false) acc[clientDepsMap[withoutExtension].fileName] = {}
+				if (clientDepsMap[withoutExtension].fileName in acc === false)
+					acc[clientDepsMap[withoutExtension].fileName] = {}
 				if (name in acc[clientDepsMap[withoutExtension].fileName] === false) {
 					// @ts-expect-error, properies get added below
 					acc[clientDepsMap[withoutExtension].fileName][name] = {}
@@ -70,7 +68,7 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 				acc[clientDepsMap[withoutExtension].fileName][name] = {
 					id: fileName,
 					chunks: [fileName],
-					name: ""
+					name: "",
 				}
 			}
 		}
