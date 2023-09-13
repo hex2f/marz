@@ -172,10 +172,8 @@ export async function resolveClientComponentDependencies(
 					try {
 						let resolved = resolutionCache.get(dep.path)
 						if (!resolved) {
-							console.time(`resolve ${entrypoint} > ${dep.path}`)
 							resolved = await Bun.resolve(dep.path, entrypoint.split("/").slice(0, -1).join("/"))
 							resolutionCache.set(dep.path, resolved)
-							console.timeEnd(`resolve ${entrypoint} > ${dep.path}`)
 						}
 						return resolved
 					} catch (e) {
