@@ -2,6 +2,9 @@ import path from "path"
 import fs from "fs/promises"
 
 const environment = process.env.NODE_ENV || "development"
+const isDebug = process.env.DEBUG === "true"
+
+const transpiler = new Bun.Transpiler({ loader: "tsx" })
 
 export async function bundle(entrypoints: string[], { outDir }: { outDir: string }) {
 	const outPath = path.resolve(outDir)
@@ -12,11 +15,9 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 	}
 	await fs.mkdir(outPath)
 
-	const ignoredClientDeps = new Set<string>([
-		path.join(outPath, "..", "framework", "client", "index.tsx"),
-		path.join(outPath, "..", "framework", "client", "router.tsx"),
-	])
+	const ignoredClientDeps = new Set<string>([])
 	const clientDeps = await resolveClientComponentDependencies(entrypoints, ignoredClientDeps)
+	if (isDebug) console.log("client deps", clientDeps)
 
 	const clientOutPath = path.join(outPath, "client")
 
@@ -26,7 +27,7 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 
 	console.time("bundle client deps")
 	const client = await Bun.build({
-		entrypoints: ["./framework/client/index.tsx", ...clientDeps.values()],
+		entrypoints: ["./framework/client/index.tsx", ...Array.from(clientDeps.values()).map((dep) => dep.entrypoint)],
 		target: "browser",
 		sourcemap: "external",
 		root: path.resolve("./"),
@@ -46,30 +47,34 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 	// this code was thrown together in a half-lucid sleep-deprived state
 	const appRoot = path.resolve(path.join(outDir, ".."))
 	const clientDepsMap = Array.from(clientDeps.values()).reduce((acc, dep) => {
-		const fileName = dep.slice(appRoot.length)
+		const fileName = dep.entrypoint.slice(appRoot.length)
 		const withoutExtension = fileName.split(".").slice(0, -1).join(".")
-		acc[withoutExtension] = { path: dep, fileName, withoutExtension }
+		acc[withoutExtension] = { path: dep.entrypoint, fileName, withoutExtension, exports: dep.exports }
 		return acc
-	}, {} as Record<string, { path: string; fileName: string; withoutExtension: string }>)
+	}, {} as Record<string, { path: string; fileName: string; withoutExtension: string; exports: string[] }>)
 
 	const manifest = client.outputs.reduce((acc, output) => {
 		const fileName = output.path.slice(clientOutPath.length)
 		const withoutExtension = fileName.split(".").slice(0, -1).join(".")
 
 		if (withoutExtension in clientDepsMap) {
-			// TODO: handle non-default exports
-			acc[clientDepsMap[withoutExtension].fileName] = {
-				id: fileName,
-				chunks: [fileName],
-				name: "",
+			const dep = clientDepsMap[withoutExtension]
+			for (const exp of dep.exports) {
+				acc[`${dep.fileName}#${exp}`] = {
+					id: fileName,
+					chunks: [fileName],
+					name: exp,
+				}
 			}
 		}
 
 		return acc
 	}, {} as Record<string, { id: string; chunks: string[]; name: string }>)
+	if (isDebug) console.log("manifest", manifest)
 	console.timeEnd("build manifest")
 
 	console.time("bundle server routes")
+	if (isDebug) console.log("entrypoints", entrypoints)
 	const serverRoutes = await Bun.build({
 		entrypoints,
 		target: "bun",
@@ -98,9 +103,24 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 						// if it is a client component, return a reference to the client bundle
 						const outputKey = args.path.slice(appRoot.length)
 
+						if (isDebug) console.log("outputKey", outputKey)
+
+						const moduleExports = transpiler.scan(code).exports
+						if (isDebug) console.log("exports", moduleExports)
+
+						let refCode = ""
+						for (const exp of moduleExports) {
+							if (exp === "default") {
+								refCode += `\nexport default { $$typeof: Symbol.for("react.client.reference"), $$async: false, $$id: "${outputKey}#default", name: "default" }`
+							} else {
+								refCode += `\nexport const ${exp} = { $$typeof: Symbol.for("react.client.reference"), $$async: false, $$id: "${outputKey}#${exp}", name: "${exp}" }`
+							}
+						}
+
+						if (isDebug) console.log("generated code", refCode)
+
 						return {
-							contents:
-								`export default { $$typeof: Symbol.for("react.client.reference"), $$async: false, $$id: "${outputKey}", name: "default" }`,
+							contents: refCode,
 							loader: "js",
 						}
 					})
@@ -113,20 +133,20 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 	return { manifest }
 }
 
-const transpiler = new Bun.Transpiler({ loader: "tsx" })
-
 function isClientComponent(code: string) {
 	return code.startsWith('"use client"') || code.startsWith("'use client'")
 }
 
+type ClientDep = { entrypoint: string; exports: string[] }
+
 export async function resolveClientComponentDependencies(
 	entrypoints: string[],
 	ignoredFiles: Set<string> = new Set(),
-	clientDeps: Set<string> = new Set(),
+	clientDeps: Set<ClientDep> = new Set(),
 	resolutionCache: Map<string, string> = new Map(),
 	processedFiles: Set<string> = new Set(),
 	depth = 0,
-): Promise<Set<string>> {
+): Promise<Set<ClientDep>> {
 	if (depth > 25) {
 		console.warn("returning early from resolveClientComponentDependencies. Too many levels of dependency.")
 		return clientDeps
@@ -139,17 +159,16 @@ export async function resolveClientComponentDependencies(
 		const file = await Bun.file(entrypoint)
 		const contents = await file.text()
 
+		const depScan = await transpiler.scan(contents)
 		if (isClientComponent(contents)) {
-			clientDeps.add(entrypoint)
+			clientDeps.add({ entrypoint, exports: depScan.exports })
 		}
 
 		processedFiles.add(entrypoint)
 
 		const deps = (
 			await Promise.all(
-				(
-					await transpiler.scan(contents)
-				).imports.map(async (dep) => {
+				depScan.imports.map(async (dep) => {
 					try {
 						let resolved = resolutionCache.get(dep.path)
 						if (!resolved) {

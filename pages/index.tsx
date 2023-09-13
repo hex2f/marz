@@ -1,6 +1,6 @@
 import React, { Fragment } from "react"
-import Counter from "../components/counter"
-import Link from "../framework/client/router/link"
+import Counter, { LabeledCounter } from "../components/counter"
+import { Link } from "../framework/client/router"
 
 export async function Page() {
 	const timeBeforeSleep = new Date()
@@ -12,6 +12,9 @@ export async function Page() {
 			<p>Time before sleep: {timeBeforeSleep.toTimeString()}</p>
 			<p>Time after sleep: {timeAfterSleep.toTimeString()}</p>
 			<Counter />
+			<br />
+			<LabeledCounter />
+			<br />
 			<Link href="/subdir">go to /subdir</Link>
 		</Fragment>
 	)

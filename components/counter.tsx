@@ -11,3 +11,12 @@ export default function Counter() {
 		</button>
 	)
 }
+
+export function LabeledCounter() {
+	return (
+		<>
+			<label htmlFor="counter">Count: </label>
+			<Counter />
+		</>
+	)
+}

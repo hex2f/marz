@@ -17,7 +17,7 @@ export default function Marz({ children }: { children: React.ReactNode }) {
 					dangerouslySetInnerHTML={{
 						__html: `
 						{ "imports": {
-						  "router/router.js": "/framework/client/router/router.js"
+						  "router.js": "/framework/client/router.js"
 						} }`,
 					}}
 				/>
@@ -34,12 +34,13 @@ export default function Marz({ children }: { children: React.ReactNode }) {
 						global.__webpack_chunk_load__ = async function(moduleId) {
 							const mod = await import(moduleId);
 							__bun__module_map__.set(moduleId, mod);
-							return mod.default;
+							return mod;
 						};
 				
 						global.__webpack_require__ = function(moduleId) {
 							// TODO: handle non-default exports
-							return __bun__module_map__.get(moduleId).default;
+							console.log("require", moduleId)
+							return __bun__module_map__.get(moduleId);
 						};`,
 					}}
 				/>

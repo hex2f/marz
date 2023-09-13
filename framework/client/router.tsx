@@ -1,13 +1,25 @@
 "use client"
 
-// @ts-expect-error - no typings for "use" yet
-import React, { startTransition, use, useEffect, useState } from "react"
+import React, {
+	type PropsWithChildren,
+	startTransition,
+	// @ts-expect-error - no typings for "use" yet
+	use,
+	useContext,
+	useEffect,
+	useState,
+	createContext,
+} from "react"
 // @ts-expect-error - no typings yet
 import { createFromFetch } from "react-server-dom-webpack/client.browser"
 
-import RouterContext from "./context"
-
 const initialCache = new Map()
+
+export const RouterContext = createContext<{
+	location: string
+	refresh: (response: Response) => void
+	navigate: (nextLocation: string) => void
+}>({ location: "", refresh: () => {}, navigate: () => {} })
 
 export default function Router() {
 	const [cache, setCache] = useState(initialCache)
@@ -52,6 +64,26 @@ export default function Router() {
 	}, [])
 
 	return <RouterContext.Provider value={{ location, navigate, refresh }}>{use(content)}</RouterContext.Provider>
+}
+
+export function useRouter() {
+	return useContext(RouterContext)
+}
+
+export function Link({ children, href }: PropsWithChildren<{ href: string }>) {
+	const { navigate } = useRouter()
+	return (
+		// biome-ignore lint/a11y/useValidAnchor: this is a progrssive enhancement link, if JS is enabled it will navigate without reloading the page by fetching and applying an RSC bundle. Otherwise it will navigate by reloading the page.
+		<a
+			href={href}
+			onClick={(e) => {
+				e.preventDefault()
+				navigate(href)
+			}}
+		>
+			{children}
+		</a>
+	)
 }
 
 // export function useMutation({ endpoint, method }: { endpoint: string; method: "POST" | "PUT" | "PATCH" }}) {
