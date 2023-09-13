@@ -1,3 +1,4 @@
+import { type Dirent } from "fs"
 import { readdir } from "fs/promises"
 import type React from "react"
 
@@ -24,11 +25,31 @@ export async function recursivelyBuildRouterIndex(
 	path: string[] = [],
 	bundleEntrypoints: RouteIndex["bundleEntrypoints"] = [],
 ): Promise<RouteIndex> {
-	const files = await readdir(directory, { withFileTypes: true })
-	for (const file of files) {
-		if (file.isDirectory()) {
-			await recursivelyBuildRouterIndex(`${directory}/${file.name}`, routes, [...path, file.name], bundleEntrypoints)
-		} else if (file.isFile()) {
+	const dirRes = await readdir(directory, { withFileTypes: true })
+
+	// split into files and directories arrays
+	const [files, directories] = dirRes.reduce(
+		([files, directories], file) => {
+			if (file.isDirectory()) {
+				directories.push(file)
+			} else if (file.isFile()) {
+				files.push(file)
+			}
+			return [files, directories]
+		},
+		[[], []] as [Dirent[], Dirent[]],
+	)
+
+	// recursively build router index for each directory
+	await Promise.all(
+		directories.map((dir) =>
+			recursivelyBuildRouterIndex(`${directory}/${dir.name}`, routes, [...path, dir.name], bundleEntrypoints),
+		),
+	)
+
+	// build router index for each file
+	await Promise.all(
+		files.map(async (file) => {
 			const fileName = file.name.replace(/\.(js|jsx|ts|tsx)$/, "")
 			let routePath = [...path]
 			if (fileName !== "index") {
@@ -36,11 +57,11 @@ export async function recursivelyBuildRouterIndex(
 			}
 			const route = (await import(`${directory}/${file.name}`)) as Route
 			if ("Page" in route === false) {
-				continue
+				return
 			}
 			bundleEntrypoints.push(`${directory}/${file.name}`)
 			routes[`/${routePath.join("/")}`] = route
-		}
-	}
+		}),
+	)
 	return { routes, bundleEntrypoints }
 }
