@@ -57,24 +57,16 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 		const withoutExtension = fileName.split(".").slice(0, -1).join(".")
 
 		if (withoutExtension in clientDepsMap) {
-			// todo: handle exports properly
-			for (const name of ["", "*", "default"]) {
-				if (clientDepsMap[withoutExtension].fileName in acc === false)
-					acc[clientDepsMap[withoutExtension].fileName] = {}
-				if (name in acc[clientDepsMap[withoutExtension].fileName] === false) {
-					// @ts-expect-error, properies get added below
-					acc[clientDepsMap[withoutExtension].fileName][name] = {}
-				}
-				acc[clientDepsMap[withoutExtension].fileName][name] = {
-					id: fileName,
-					chunks: [fileName],
-					name: "",
-				}
+			// TODO: handle non-default exports
+			acc[clientDepsMap[withoutExtension].fileName] = {
+				id: fileName,
+				chunks: [fileName],
+				name: "",
 			}
 		}
 
 		return acc
-	}, {} as Record<string, Record<string, { id: string; chunks: string[]; name: string }>>)
+	}, {} as Record<string, { id: string; chunks: string[]; name: string }>)
 	console.timeEnd("build manifest")
 
 	console.time("bundle server routes")
@@ -108,9 +100,7 @@ export async function bundle(entrypoints: string[], { outDir }: { outDir: string
 
 						return {
 							contents:
-								// biome-ignore lint/style/useTemplate: for nicer formatting
-								'const MODULE_REFERENCE = Symbol.for("react.client.reference");\n' +
-								`export default { $$typeof: MODULE_REFERENCE, $$async: false, $$id: "${outputKey}", name: "default" }`,
+								`export default { $$typeof: Symbol.for("react.client.reference"), $$async: false, $$id: "${outputKey}", name: "default" }`,
 							loader: "js",
 						}
 					})
