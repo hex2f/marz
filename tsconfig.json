@@ -1,22 +1,24 @@
 {
-  "compilerOptions": {
-    "lib": ["ESNext"],
-    "module": "esnext",
-    "target": "esnext",
-    "moduleResolution": "bundler",
-    "moduleDetection": "force",
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "composite": true,
-    "strict": true,
-    "downlevelIteration": true,
-    "skipLibCheck": true,
-    "jsx": "preserve",
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
-    "types": [
-      "bun-types" // add Bun global
-    ]
-  }
+	"compilerOptions": {
+		"lib": ["ESNext"],
+		"module": "esnext",
+		"target": "esnext",
+		"moduleResolution": "bundler",
+		"moduleDetection": "force",
+		"allowImportingTsExtensions": true,
+		"noEmit": true,
+		"composite": true,
+		"strict": true,
+		"downlevelIteration": true,
+		"skipLibCheck": true,
+		"jsx": "preserve",
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+		"allowJs": true,
+		"types": [
+			"react/canary",
+			"react-dom/canary",
+			"bun-types" // add Bun global
+		]
+	}
 }
