@@ -5,6 +5,8 @@ export default function Marz({ children }: { children: React.ReactNode }) {
 		<html lang="en">
 			<head>
 				<title>Marz</title>
+				{/* TODO: "Head" component to let user add stuff to head */}
+				<link rel="stylesheet" href="/main.css" />
 			</head>
 			<body>
 				<main id="__MARZ_MOUNT">{children}</main>

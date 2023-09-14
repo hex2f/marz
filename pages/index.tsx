@@ -1,19 +1,19 @@
 import React, { Fragment, Suspense } from "react"
 import Counter from "../components/counter"
+import { Time } from "../components/time"
 import { Link } from "../framework/client/router"
 
 export async function Page() {
-	const timeBeforeSleep = new Date()
-	await new Promise((resolve) => setTimeout(resolve, 100))
-	const timeAfterSleep = new Date()
 	return (
 		<Fragment>
-			<h1>Hello world!</h1>
-			<p>Time before sleep: {timeBeforeSleep.toISOString()}</p>
-			<p>Time after sleep: {timeAfterSleep.toISOString()}</p>
 			<Counter />
+			<h1>Hello world!</h1>
+			<p>
+				Rendered at: <Time />
+			</p>
 			<br />
-			<Link href="/subdir">go to /subdir</Link>
+			<br />
+			<Link href="/suspense">Go to suspense demo</Link>
 		</Fragment>
 	)
 }
