@@ -31,27 +31,36 @@ export default async function createWorker({
 				// RSC
 				const location = url.searchParams.get("location")
 
-				console.time(`RSC render ${location}`)
+				console.time(`RSC start stream ${location}`)
 
 				const route = await rscRouter(decodeURIComponent(location ?? "/"))
 				const html = await renderToPipeableStream(route, manifest)
-				const writer = new stream.PassThrough()
 
-				// TODO: figure out how to convert this to a ReadableStream properly cause this is so ugly lol
-				const htmlStr = (await new Promise((res) => {
-					let string = ""
-					writer.on("data", function (data) {
-						string += data.toString()
-					})
-					writer.on("end", function () {
-						res(string)
-					})
-					html.pipe(writer)
-				})) as string
+				console.timeEnd(`RSC start stream ${location}`)
 
-				console.timeEnd(`RSC render ${location}`)
+				// Convert node stream to web stream, adds a bit of overhead but its Fine :tm:
+				const htmlStream = new ReadableStream({
+					start(controller) {
+						html.pipe(
+							new stream.Writable({
+								write(chunk, encoding, callback) {
+									controller.enqueue(chunk)
+									callback()
+								},
+								destroy(error, callback) {
+									if (error) {
+										controller.error(error)
+									} else {
+										controller.close()
+									}
+									callback(error)
+								},
+							}),
+						)
+					},
+				})
 
-				return new Response(htmlStr, {
+				return new Response(htmlStream, {
 					headers: {
 						"Content-Type": "application/json",
 					},
@@ -67,7 +76,7 @@ export default async function createWorker({
 					return new Response("Not found", { status: 404 })
 				}
 				const mount = <MarzMount>{route}</MarzMount>
-				const html = await renderToReadableStream(mount, manifest)
+				const html = await renderToReadableStream(mount)
 				return new Response(html, {
 					headers: {
 						"Content-Type": "text/html",
