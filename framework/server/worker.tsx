@@ -34,14 +34,14 @@ export default async function createWorker({
 				console.time(`RSC start stream ${location}`)
 
 				const route = await rscRouter(decodeURIComponent(location ?? "/"))
-				const html = await renderToPipeableStream(route, manifest)
+				const rsc = await renderToPipeableStream(route, manifest)
 
 				console.timeEnd(`RSC start stream ${location}`)
 
 				// Convert node stream to web stream, adds a bit of overhead but its Fine :tm:
-				const htmlStream = new ReadableStream({
+				const rscStream = new ReadableStream({
 					start(controller) {
-						html.pipe(
+						rsc.pipe(
 							new stream.Writable({
 								write(chunk, encoding, callback) {
 									controller.enqueue(chunk)
@@ -60,24 +60,30 @@ export default async function createWorker({
 					},
 				})
 
-				return new Response(htmlStream, {
+				return new Response(rscStream, {
 					headers: {
 						"Content-Type": "application/json",
 					},
 				})
 			} else {
 				// SSR
-				const route = await ssrRouter(url.pathname)
-				if (route == null) {
+				const ssrRoute = await ssrRouter(url.pathname)
+				if (ssrRoute == null) {
 					const file = Bun.file(path.join(publicDir, url.pathname))
 					if (file) {
 						return new Response(file)
 					}
 					return new Response("Not found", { status: 404 })
 				}
-				const mount = <MarzMount>{route}</MarzMount>
-				const html = await renderToReadableStream(mount)
-				return new Response(html, {
+
+				const mount = <MarzMount>{ssrRoute}</MarzMount>
+
+				// TODO: this is a temporary hack to only render a single "frame"
+				const abortController = new AbortController()
+				const ssr = await renderToReadableStream(mount, { signal: abortController.signal, onError() {} })
+				abortController.abort()
+
+				return new Response(ssr, {
 					headers: {
 						"Content-Type": "text/html",
 					},
