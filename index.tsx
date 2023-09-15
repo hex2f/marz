@@ -9,7 +9,7 @@ const ssrPagesDir = path.resolve("./pages")
 const rscPagesDir = path.resolve("./.marz/server/routes")
 
 console.time("create ssr router index")
-const ssrRouterIndex = await recursivelyBuildRouterIndex(ssrPagesDir, {}, [])
+const ssrRouterIndex = await recursivelyBuildRouterIndex(ssrPagesDir)
 console.timeEnd("create ssr router index")
 
 const { manifest } = await bundle(ssrRouterIndex.bundleEntrypoints, {
@@ -18,7 +18,7 @@ const { manifest } = await bundle(ssrRouterIndex.bundleEntrypoints, {
 })
 
 console.time("create rsc router index")
-const rscRouterIndex = await recursivelyBuildRouterIndex(rscPagesDir, {}, [])
+const rscRouterIndex = await recursivelyBuildRouterIndex(rscPagesDir)
 console.timeEnd("create rsc router index")
 
 console.time("reconcile routes")

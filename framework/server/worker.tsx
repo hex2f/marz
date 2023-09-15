@@ -4,6 +4,11 @@ import { renderToReadableStream } from "react-dom/server"
 // @ts-expect-error - doesnt have any types, at least that i could find
 import { renderToPipeableStream } from "react-server-dom-webpack/server.node"
 import MarzMount from "./mount"
+import type createRouterFromDirectory from "./router"
+import { StrictMode } from "react"
+
+// biome-ignore lint/suspicious/noExplicitAny: trust me typescript, this is for your own good.
+type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (...args: any) => Promise<infer R> ? R : any
 
 export default async function createWorker({
 	rscRouter,
@@ -11,8 +16,8 @@ export default async function createWorker({
 	manifest,
 	publicDir,
 }: {
-	rscRouter: (route: string) => Promise<JSX.Element | null>
-	ssrRouter: (route: string) => Promise<JSX.Element | null>
+	rscRouter: AsyncReturnType<typeof createRouterFromDirectory>
+	ssrRouter: AsyncReturnType<typeof createRouterFromDirectory>
 	manifest: Record<string, object>
 	publicDir: string
 }) {
@@ -34,7 +39,10 @@ export default async function createWorker({
 				console.time(`RSC start stream ${location}`)
 
 				const route = await rscRouter(decodeURIComponent(location ?? "/"))
-				const rsc = await renderToPipeableStream(route, manifest)
+				// i... did not think this naming through lmfao
+				if (!route?.route.route.Page) throw new Error("Route not found")
+				const params = { ...route.match.groups }
+				const rsc = await renderToPipeableStream(<route.route.route.Page params={params} />, manifest)
 
 				console.timeEnd(`RSC start stream ${location}`)
 
@@ -68,7 +76,8 @@ export default async function createWorker({
 			} else {
 				// SSR
 				const ssrRoute = await ssrRouter(url.pathname)
-				if (ssrRoute == null) {
+				// i... did not think this naming through lmfao
+				if (!ssrRoute?.route.route.Page) {
 					const file = Bun.file(path.join(publicDir, url.pathname))
 					if (file) {
 						return new Response(file)
@@ -76,7 +85,15 @@ export default async function createWorker({
 					return new Response("Not found", { status: 404 })
 				}
 
-				const mount = <MarzMount>{ssrRoute}</MarzMount>
+				const params = { ...ssrRoute.match.groups }
+
+				const mount = (
+					<StrictMode>
+						<MarzMount>
+							<ssrRoute.route.route.Page params={params} />
+						</MarzMount>
+					</StrictMode>
+				)
 
 				// TODO: this is a temporary hack to only render a single "frame"
 				const abortController = new AbortController()

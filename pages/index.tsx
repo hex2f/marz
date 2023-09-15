@@ -14,6 +14,8 @@ export async function Page() {
 			<br />
 			<br />
 			<Link href="/suspense">Go to suspense demo</Link>
+			<br />
+			<Link href="/posts">/posts</Link>
 		</Fragment>
 	)
 }
