@@ -5,9 +5,9 @@ import type React from "react"
 export default async function createRouterFromDirectory(
 	directory: string,
 	options?: { notFoundComponent?: React.JSX.Element; routerIndex?: RouteIndex },
-): Promise<(path: string) => Promise<MatchedRoute | undefined>> {
+): Promise<(path: string) => Promise<MatchedRoute<Route> | undefined>> {
 	const routes = options?.routerIndex ?? (await recursivelyBuildRouterIndex(directory))
-	const routeCache = new Map<string, MatchedRoute | undefined>()
+	const routeCache = new Map<string, MatchedRoute<Route> | undefined>()
 	return async (path: string) => {
 		if (routeCache.has(path)) {
 			return routeCache.get(path)
@@ -23,30 +23,48 @@ export default async function createRouterFromDirectory(
 	}
 }
 
-type Route = {
+// biome-ignore lint/suspicious/noExplicitAny: trust me typescript, this is for your own good.
+type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (...args: any) => Promise<infer R> ? R : any
+export type Router = AsyncReturnType<typeof createRouterFromDirectory>
+
+export type PageRoute = {
+	type: "page"
 	Page?: React.FC<{ params: Record<string, string> }>
 	Layout?: React.FC<{ params: Record<string, string> }>
 }
 
-type RouteNode = {
+type APIRouteHandler = (req: Request, params: Record<string, string>) => Promise<Response | undefined>
+
+export type APIRoute = {
+	type: "api"
+	GET?: APIRouteHandler
+	POST?: APIRouteHandler
+	PUT?: APIRouteHandler
+	PATCH?: APIRouteHandler
+	DELETE?: APIRouteHandler
+}
+
+export type Route = APIRoute | PageRoute | { type: "none" }
+
+export type RouteNode = {
 	route?: Route
 	param?: boolean
 	children: Record<string, RouteNode>
 }
 
-type MatchableRoute = { regex: RegExp; pathLength: number; paramCount: number; route: Route }
+export type MatchableRoute<T extends Route> = { regex: RegExp; pathLength: number; paramCount: number; route: T }
 
-type MatchedRoute = { route: MatchableRoute; match: RegExpMatchArray }
+export type MatchedRoute<T extends Route> = { route: MatchableRoute<T>; match: RegExpMatchArray }
 
 type RouteIndex = {
 	tree: RouteNode
-	regexes: Array<MatchableRoute>
+	regexes: Array<MatchableRoute<Route>>
 	bundleEntrypoints: string[]
 }
 
 export async function recursivelyBuildRouterIndex(
 	directory: string,
-	regexes: Array<MatchableRoute> = [],
+	regexes: Array<MatchableRoute<Route>> = [],
 	node: RouteNode = { children: {} },
 	currentPath: string[] = [],
 	bundleEntrypoints: RouteIndex["bundleEntrypoints"] = [],
@@ -99,15 +117,31 @@ export async function recursivelyBuildRouterIndex(
 	await Promise.all(
 		files.map(async (file) => {
 			const fileName = file.name.replace(/\.(js|jsx|ts|tsx)$/, "")
-			const route = (await import(`${directory}/${file.name}`)) as Route
-			if ("Page" in route === false) {
-				return
+			const routeExports = (await import(`${directory}/${file.name}`)) as Route
+
+			let route = { type: "none" } as Route
+
+			if ("Page" in routeExports || "Layout" in routeExports) {
+				route = { type: "page", Page: routeExports.Page, Layout: routeExports.Layout }
+			}
+
+			if (
+				"GET" in routeExports ||
+				"POST" in routeExports ||
+				"PUT" in routeExports ||
+				"PATCH" in routeExports ||
+				"DELETE" in routeExports
+			) {
+				if (route.type === "page") {
+					throw new Error(`A page cannot be both a page and an API route.\n      in ${file.name}`)
+				}
+				route = { ...routeExports, type: "api" }
 			}
 
 			// TODO: Layouts
 
 			if (fileName === "index") {
-				node.route = route
+				node.route = routeExports
 				regexes.push({
 					regex: new RegExp(`^${currentPath.join("/")}$`),
 					pathLength: currentPath.length,
@@ -142,7 +176,7 @@ export async function recursivelyBuildRouterIndex(
 	return { tree: node, regexes, bundleEntrypoints }
 }
 
-function matchRoute(path: string, regexes: Array<MatchableRoute>): MatchedRoute | undefined {
+function matchRoute(path: string, regexes: Array<MatchableRoute<Route>>): MatchedRoute<Route> | undefined {
 	const pathLength = path.split("/").filter((p) => p !== "").length
 	const viable = regexes
 		.filter((r) => r.pathLength === pathLength) // only match routes with the same number of path segments

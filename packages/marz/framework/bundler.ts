@@ -7,6 +7,8 @@ const isDebug = process.env.DEBUG === "true"
 
 const transpiler = new Bun.Transpiler({ loader: "tsx" })
 
+export type Manifest = Record<string, { id: string; chunks: string[]; name: string }>
+
 export async function bundle(entrypoints: string[], { outDir, publicDir }: { outDir: string; publicDir?: string }) {
 	const outPath = path.resolve(outDir)
 	try {

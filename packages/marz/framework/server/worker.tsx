@@ -1,15 +1,12 @@
+import { BunFile, Server } from "bun"
 import path from "path"
-import stream from "stream"
-import { renderToReadableStream } from "react-dom/server"
-// @ts-expect-error - doesnt have any types, at least that i could find
-import { renderToPipeableStream } from "react-server-dom-webpack/server.node"
-import MarzMount from "./mount"
-import type createRouterFromDirectory from "./router"
-import { StrictMode } from "react"
-import { Server } from "bun"
+import renderRSC from "./rsc"
+import { APIRoute, MatchedRoute, PageRoute, Router } from "./router"
+import { Manifest } from "../bundler"
+import renderSSR from "./ssr"
+import callAPI from "./api"
 
-// biome-ignore lint/suspicious/noExplicitAny: trust me typescript, this is for your own good.
-type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (...args: any) => Promise<infer R> ? R : any
+type Middleware = (req: Request) => Response | undefined
 
 export default function createWorker({
 	rscRouter,
@@ -17,102 +14,60 @@ export default function createWorker({
 	manifest,
 	publicDir,
 	port,
+	middleware = [],
 }: {
-	rscRouter: AsyncReturnType<typeof createRouterFromDirectory>
-	ssrRouter: AsyncReturnType<typeof createRouterFromDirectory>
-	manifest: Record<string, { id: string; chunks: string[]; name: string }>
+	rscRouter: Router
+	ssrRouter: Router
+	manifest: Manifest
 	publicDir: string
 	port: number
+	middleware?: Array<Middleware>
 }): Server {
-	return Bun.serve({
+	const fileCache = new Map<string, BunFile>()
+
+	const server = Bun.serve({
 		port,
 		async fetch(req) {
 			const url = new URL(req.url)
 
-			// TODO: implement a proper router here
-
-			if (url.pathname === "/favicon.ico") {
-				return new Response(null, { status: 404 })
+			for (const mw of middleware) {
+				const res = mw(req)
+				if (res) return res
 			}
 
+			// TODO: implement a proper router here
 			if (url.pathname === "/__marz") {
-				// RSC
 				const location = url.searchParams.get("location")
-
-				console.time(`RSC start stream ${location}`)
-
 				const route = await rscRouter(decodeURIComponent(location ?? "/"))
-				// i... did not think this naming through lmfao
-				if (!route?.route.route.Page) throw new Error("Route not found")
-				const params = { ...route.match.groups }
-				const rsc = await renderToPipeableStream(<route.route.route.Page params={params} />, manifest)
+				if (!route || route.route.route.type !== "page") return new Response("Not found", { status: 404 })
 
-				console.timeEnd(`RSC start stream ${location}`)
-
-				// Convert node stream to web stream, adds a bit of overhead but its Fine :tm:
-				const rscStream = new ReadableStream({
-					start(controller) {
-						rsc.pipe(
-							new stream.Writable({
-								write(chunk, encoding, callback) {
-									controller.enqueue(chunk)
-									callback()
-								},
-								destroy(error, callback) {
-									if (error) {
-										controller.error(error)
-									} else {
-										controller.close()
-									}
-									callback(error)
-								},
-							}),
-						)
-					},
-				})
-
-				return new Response(rscStream, {
-					headers: {
-						"Content-Type": "application/json",
-					},
-				})
+				return renderRSC(url, route as MatchedRoute<PageRoute>, manifest)
 			} else {
-				// SSR
-				const ssrRoute = await ssrRouter(url.pathname)
-				// i... did not think this naming through lmfao
-				if (!ssrRoute?.route.route.Page) {
-					const file = Bun.file(path.join(publicDir, url.pathname))
+				const route = await ssrRouter(url.pathname)
+
+				if (!route) {
+					const file = fileCache.has(url.pathname)
+						? fileCache.get(url.pathname)
+						: Bun.file(path.join(publicDir, url.pathname))
 					if (file) {
+						fileCache.set(url.pathname, file)
 						return new Response(file)
+					} else {
+						return new Response("Not found", { status: 404 })
 					}
-					return new Response("Not found", { status: 404 })
 				}
 
-				const params = { ...ssrRoute.match.groups }
-
-				// TODO: this is really ugly, rethink this
-				const clientEntryScript = manifest["client-entry"]?.chunks[0]
-				const clientRouterScript = manifest["client-router"]?.chunks[0]
-
-				const mount = (
-					<StrictMode>
-						<MarzMount clientEntryScript={clientEntryScript} clientRouterScript={clientRouterScript}>
-							<ssrRoute.route.route.Page params={params} />
-						</MarzMount>
-					</StrictMode>
-				)
-
-				// TODO: this is a temporary hack to only render a single "frame"
-				const abortController = new AbortController()
-				const ssr = await renderToReadableStream(mount, { signal: abortController.signal, onError() {} })
-				abortController.abort()
-
-				return new Response(ssr, {
-					headers: {
-						"Content-Type": "text/html",
-					},
-				})
+				switch (route.route.route.type) {
+					case "api":
+						return callAPI(req, route as MatchedRoute<APIRoute>)
+					case "page":
+						return renderSSR(url, route as MatchedRoute<PageRoute>, manifest, publicDir)
+					default:
+						return new Response("Route failed to resolve", { status: 500 })
+				}
 			}
 		},
 	})
+
+	return server
 }
