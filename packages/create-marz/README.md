@@ -5,7 +5,7 @@ Set up a new [Marz](https://github.com/hex2f/marz) app in seconds.
 ## With Bun
 
 ```bash
-bun create marz-app
+bun create marz
 ```
 
 ## Arguments

@@ -152,7 +152,6 @@ const astronauts = ["👩🏻‍🚀", "👩🏼‍🚀", "👩🏽‍🚀", "�
 console.log(`\n🚀 Touchdown! We have landed on Marz ${astronauts[Math.floor(Math.random() * astronauts.length)]}
 
 To get started, run:
-  cd ${appName}
-  bun install
+  cd ${appName}${args["--install"] ? "" : "\n  bun install"}
   bun dev
 `)
