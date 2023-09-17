@@ -1,0 +1,17 @@
+{
+	"name": "marz-template-barebones",
+	"module": "main.ts",
+	"type": "module",
+	"devDependencies": {
+		"bun-types": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	},
+	"scripts": {
+		"dev": "marz dev"
+	},
+	"dependencies": {
+		"marz": "^0.1.0"
+	}
+}

@@ -6,23 +6,26 @@ import { renderToPipeableStream } from "react-server-dom-webpack/server.node"
 import MarzMount from "./mount"
 import type createRouterFromDirectory from "./router"
 import { StrictMode } from "react"
+import { Server } from "bun"
 
 // biome-ignore lint/suspicious/noExplicitAny: trust me typescript, this is for your own good.
 type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (...args: any) => Promise<infer R> ? R : any
 
-export default async function createWorker({
+export default function createWorker({
 	rscRouter,
 	ssrRouter,
 	manifest,
 	publicDir,
+	port,
 }: {
 	rscRouter: AsyncReturnType<typeof createRouterFromDirectory>
 	ssrRouter: AsyncReturnType<typeof createRouterFromDirectory>
-	manifest: Record<string, object>
+	manifest: Record<string, { id: string; chunks: string[]; name: string }>
 	publicDir: string
-}) {
-	Bun.serve({
-		port: 3000,
+	port: number
+}): Server {
+	return Bun.serve({
+		port,
 		async fetch(req) {
 			const url = new URL(req.url)
 
@@ -87,9 +90,13 @@ export default async function createWorker({
 
 				const params = { ...ssrRoute.match.groups }
 
+				// TODO: this is really ugly, rethink this
+				const clientEntryScript = manifest["client-entry"]?.chunks[0]
+				const clientRouterScript = manifest["client-router"]?.chunks[0]
+
 				const mount = (
 					<StrictMode>
-						<MarzMount>
+						<MarzMount clientEntryScript={clientEntryScript} clientRouterScript={clientRouterScript}>
 							<ssrRoute.route.route.Page params={params} />
 						</MarzMount>
 					</StrictMode>

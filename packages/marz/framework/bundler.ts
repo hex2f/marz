@@ -28,14 +28,29 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 	await fs.mkdir(path.join(outPath, "server"))
 	await fs.mkdir(path.join(outPath, "server", "routes"))
 
+	const rundir = process.cwd().split(path.sep)
+	const marzdir = (await Bun.resolve("marz", ".")).split(path.sep)
+
+	let commonDirPath = ""
+	for (let i = 0; i < rundir.length; i++) {
+		if (rundir[i] !== marzdir[i]) break
+		commonDirPath += rundir[i] + path.sep
+	}
+	if (isDebug) console.log("common dir path", commonDirPath)
+
+	const clientEntry = path.resolve(import.meta.dir, "./client/index.tsx")
+	const clientRouter = path.resolve(import.meta.dir, "./client/router.tsx")
+	if (isDebug) console.log("client entry", clientEntry)
+	if (isDebug) console.log([clientEntry, ...Array.from(clientDeps.values()).map((dep) => dep.entrypoint)])
+
 	console.time("bundle client deps")
 	const client = await Bun.build({
-		entrypoints: ["./framework/client/index.tsx", ...Array.from(clientDeps.values()).map((dep) => dep.entrypoint)],
+		entrypoints: [clientEntry, ...Array.from(clientDeps.values()).map((dep) => dep.entrypoint)],
 		target: "browser",
 		sourcemap: "external",
-		root: path.resolve("./"),
 		splitting: true,
 		format: "esm",
+		root: commonDirPath,
 		outdir: clientOutPath,
 		minify: environment === "production" || minify,
 		define: {
@@ -43,18 +58,26 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 		},
 		plugins: [],
 	})
+	if (!client.success) {
+		console.error(client.logs)
+		throw new Error("client build failed")
+	}
+	if (isDebug) console.log("client outputs", client)
 	console.timeEnd("bundle client deps")
 
 	console.time("build manifest")
 	// there definitely is a better way to do all this,
 	// this code was thrown together in a half-lucid sleep-deprived state
-	const appRoot = path.resolve(path.join(outDir, ".."))
-	const clientDepsMap = Array.from(clientDeps.values()).reduce((acc, dep) => {
-		const fileName = dep.entrypoint.slice(appRoot.length)
-		const withoutExtension = fileName.split(".").slice(0, -1).join(".")
-		acc[withoutExtension] = { path: dep.entrypoint, fileName, withoutExtension, exports: dep.exports }
-		return acc
-	}, {} as Record<string, { path: string; fileName: string; withoutExtension: string; exports: string[] }>)
+	const clientDepsMap = [{ entrypoint: clientEntry, exports: ["default"] }, ...Array.from(clientDeps.values())].reduce(
+		(acc, dep) => {
+			const fileName = dep.entrypoint.slice(commonDirPath.length - 1)
+			const withoutExtension = fileName.split(".").slice(0, -1).join(".")
+			acc[withoutExtension] = { path: dep.entrypoint, fileName, withoutExtension, exports: dep.exports }
+			return acc
+		},
+		{} as Record<string, { path: string; fileName: string; withoutExtension: string; exports: string[] }>,
+	)
+	if (isDebug) console.log(clientDepsMap)
 
 	const manifest = client.outputs.reduce((acc, output) => {
 		const fileName = output.path.slice(clientOutPath.length)
@@ -62,18 +85,31 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 
 		if (withoutExtension in clientDepsMap) {
 			const dep = clientDepsMap[withoutExtension]
-			for (const exp of dep.exports) {
-				acc[`${dep.fileName}#${exp}`] = {
-					id: fileName,
-					chunks: [fileName],
-					name: exp,
-				}
+
+			// this aint great i dont love this
+			switch (dep.path) {
+				case clientEntry:
+					acc["client-entry"] = { id: fileName, chunks: [fileName], name: "default" }
+					break
+				case clientRouter:
+					acc["client-router"] = { id: fileName, chunks: [fileName], name: "default" }
+				// let client router fall through since it may be imported by other components
+				default:
+					for (const exp of dep.exports) {
+						acc[`${dep.fileName}#${exp}`] = {
+							id: fileName,
+							chunks: [fileName],
+							name: exp,
+						}
+					}
 			}
 		}
 
 		return acc
 	}, {} as Record<string, { id: string; chunks: string[]; name: string }>)
+
 	if (isDebug) console.log("manifest", manifest)
+	await Bun.write(path.join(outPath, "manifest.json"), JSON.stringify(manifest, null, 2))
 	console.timeEnd("build manifest")
 
 	console.time("bundle server routes")
@@ -104,7 +140,8 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 						}
 
 						// if it is a client component, return a reference to the client bundle
-						const outputKey = args.path.slice(appRoot.length)
+						const outputKey = `/${args.path.slice(commonDirPath.length)}`
+						// const outputKey = args.path.slice(appRoot.length)
 
 						if (isDebug) console.log("outputKey", outputKey)
 
@@ -131,6 +168,12 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 			},
 		],
 	})
+
+	if (!serverRoutes.success) {
+		console.error(serverRoutes.logs)
+		throw new Error("server routes build failed")
+	}
+
 	console.timeEnd("bundle server routes")
 
 	return { manifest }

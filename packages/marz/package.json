@@ -1,0 +1,26 @@
+{
+	"name": "marz",
+	"version": "0.1.1",
+	"main": "cli.ts",
+	"type": "module",
+	"devDependencies": {
+		"@biomejs/biome": "1.1.2",
+		"@types/argparse": "^2.0.10",
+		"@types/react": "^18.2.21",
+		"@types/react-dom": "^18.2.7",
+		"bun-types": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	},
+	"bin": {
+		"marz": "cli.ts"
+	},
+	"files": ["framework/", "cli.ts", "build.ts", "dev.ts", "start.ts", "package.json"],
+	"dependencies": {
+		"arg": "^5.0.2",
+		"react": "18.3.0-canary-41f0e9dae-20230907",
+		"react-dom": "18.3.0-canary-41f0e9dae-20230907",
+		"react-server-dom-webpack": "18.3.0-canary-41f0e9dae-20230907"
+	}
+}

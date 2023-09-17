@@ -1,6 +1,10 @@
 import React from "react"
 
-export default function Marz({ children }: { children: React.ReactNode }) {
+export default function Marz({
+	children,
+	clientEntryScript,
+	clientRouterScript,
+}: { children: React.ReactNode; clientEntryScript: string; clientRouterScript: string }) {
 	return (
 		<html lang="en">
 			<head>
@@ -19,7 +23,7 @@ export default function Marz({ children }: { children: React.ReactNode }) {
 					dangerouslySetInnerHTML={{
 						__html: `
 						{ "imports": {
-						  "router.js": "/framework/client/router.js"
+						  "router.js": "${clientRouterScript}"
 						} }`,
 					}}
 				/>
@@ -46,7 +50,7 @@ export default function Marz({ children }: { children: React.ReactNode }) {
 						};`,
 					}}
 				/>
-				<script type="module" src="/framework/client/index.js" />
+				<script type="module" src={clientEntryScript} />
 			</body>
 		</html>
 	)

@@ -1,20 +1,6 @@
 {
-  "name": "marz",
-  "version": "0.0.2",
-  "module": "index.ts",
-  "type": "module",
-  "devDependencies": {
-    "@biomejs/biome": "1.1.2",
-    "@types/react": "^18.2.21",
-    "@types/react-dom": "^18.2.7",
-    "bun-types": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "react": "18.3.0-canary-41f0e9dae-20230907",
-    "react-dom": "18.3.0-canary-41f0e9dae-20230907",
-    "react-server-dom-webpack": "18.3.0-canary-41f0e9dae-20230907"
-  }
+	"name": "marz-monorepo",
+	"version": "0.0.1",
+	"description": "Monorepo for Marz",
+	"workspaces": ["packages/*"]
 }
