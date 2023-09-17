@@ -30,18 +30,42 @@ This project is still in very early development, and is currently meant to serve
 
 # Getting Started
 
-Marz is built on top of [Bun](https://bun.sh/), so you'll need to install that first by following their [installation guide](https://bun.sh/docs/installation).
+Marz is built on top of Bun, so before you begin, make sure to follow Bun's installation guide.
 
-Then use `bun create marz` to use the interactive [create-marz](https://github.com/hex2f/marz/tree/main/packages/create-marz) CLI.
+### Step 1: Install Bun
+Install Bun by following their installation guide, which can be found [here](https://bun.sh/docs/installation).
 
-To run the server, use `bun dev`. This bundles all of your pages and components, and starts a server on port 3000.
+### Step 2: Create Marz
+Use the following command to create a Marz project using the interactive [`create-marz`](https://github.com/hex2f/marz/tree/main/packages/create-marz) CLI:
 
-Routing is determined by the file structure of your `pages` directory. For example, a file at `pages/index.tsx` will be served at `/`, and a file at `pages/about.tsx` will be served at `/about`. Each file is expected to export a named `Page` component. For now, all `Page` components must be server components, but they can import and use client components. Params are supported (`pages/[id].tsx` or `pages/[id]/about.tsx`), and can be accessed via the `params` prop on the `Page` component.
+```bash
+bun create marz
+```
+
+### Step 3: Run the Server
+To start the Marz server, execute the following command:
+
+```bash
+bun dev
+```
+
+This command bundles all your pages and components and starts a server on port 3000.
+
+### Step 4: Define Routes
+Routing in Marz is determined by the file structure of your `pages` directory. For example:
+
+- A file at `pages/index.tsx` will be served at `/`.
+- A file at `pages/about.tsx` will be served at `/about`.
+
+Each file is expected to export a named `Page` component. Currently, all `Page` components must be server components, but they can import and use client components. Parameters are supported (e.g., `pages/[id].tsx` or `pages/[id]/about.tsx`) and can be accessed via the `params` prop on the `Page` component.
 
 # Known Issues
 
-* If you're running into `Duplicate export of ...`, run marz with the `MINIFY=true` environment variable set. This is caused by an [issue in Bun](https://github.com/oven-sh/bun/issues/5344).
-* The page renders twice. This is because currently the server does not include RSC hydration with the initial HTML response, so the browser also has to call out to `/__marz` to re-render the page with RSC. This will be fixed in the future.
+### Issue 1: Duplicate Export Error
+If you encounter a `"Duplicate export of ..."` error, run Marz with the `MINIFY=true` environment variable set. This is caused by an [issue in Bun](https://github.com/oven-sh/bun/issues/5344).
+
+### Issue 2: Page Renders Twice
+Currently, the page may render twice. This behavior occurs because the server does not include RSC (React Server Components) hydration with the initial HTML response, so the browser also has to call out to `/__marz` to re-render the page with RSC. This issue will be addressed in a future release.
 
 # Contributing
 
