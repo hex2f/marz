@@ -24,8 +24,6 @@
 	</a>
 </p>
 
-
-
 # Disclaimer
 
 This project is still in very early development, and is currently meant to serve as a proof of concept. It is not recommended to use this in production.
@@ -34,11 +32,11 @@ This project is still in very early development, and is currently meant to serve
 
 Marz is built on top of [Bun](https://bun.sh/), so you'll need to install that first by following their [installation guide](https://bun.sh/docs/installation).
 
-Then clone this repo, and install its dependencies using `bun install`.
+Then use `bun create marz` to use the interactive [create-marz](https://github.com/hex2f/marz/tree/main/packages/create-marz) CLI.
 
-To run the server, use `bun run index.tsx`. This bundles all of your pages and components, and starts a server on port 3000. Currently there is no "watch" mode for development, so you'll need to restart the server manually after making changes.
+To run the server, use `bun dev`. This bundles all of your pages and components, and starts a server on port 3000.
 
-Routing is determined by the file structure of your `pages` directory. For example, a file at `pages/index.tsx` will be served at `/`, and a file at `pages/about.tsx` will be served at `/about`. Each file is expected to export a named `Page` component. For now, all `Page` components must be server components, but they can import and use client components.
+Routing is determined by the file structure of your `pages` directory. For example, a file at `pages/index.tsx` will be served at `/`, and a file at `pages/about.tsx` will be served at `/about`. Each file is expected to export a named `Page` component. For now, all `Page` components must be server components, but they can import and use client components. Params are supported (`pages/[id].tsx` or `pages/[id]/about.tsx`), and can be accessed via the `params` prop on the `Page` component.
 
 # Contributing
 
