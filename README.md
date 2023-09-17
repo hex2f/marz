@@ -38,6 +38,11 @@ To run the server, use `bun dev`. This bundles all of your pages and components,
 
 Routing is determined by the file structure of your `pages` directory. For example, a file at `pages/index.tsx` will be served at `/`, and a file at `pages/about.tsx` will be served at `/about`. Each file is expected to export a named `Page` component. For now, all `Page` components must be server components, but they can import and use client components. Params are supported (`pages/[id].tsx` or `pages/[id]/about.tsx`), and can be accessed via the `params` prop on the `Page` component.
 
+# Known Issues
+
+* If you're running into `Duplicate export of ...`, run marz with the `MINIFY=true` environment variable set. This is caused by an [issue in Bun](https://github.com/oven-sh/bun/issues/5344).
+* The page renders twice. This is because currently the server does not include RSC hydration with the initial HTML response, so the browser also has to call out to `/__marz` to re-render the page with RSC. This will be fixed in the future.
+
 # Contributing
 
 Contributions are very welcome! This project is still in its early stages, so there are many ways to contribute. If you're interested in contributing, please join the [Discord server](https://discord.gg/M6mS2cwXag) and say hello 👋
