@@ -10,15 +10,15 @@ import child_process from "child_process"
 import { version } from "./package.json"
 
 const availableTemplates = {
-	"template-barebones": {
+	barebones: {
 		name: "Barebones",
 		description: "A barebones Marz app with no other dependencies.",
 	},
-	// "template-tailwind": {
+	// "tailwind": {
 	// 	name: "Tailwind",
 	// 	description: "A Marz app with Tailwind CSS.",
 	// },
-	// "template-shadcn": {
+	// "shadcn": {
 	// 	name: "shadcn/ui",
 	// 	description: "A Marz app with shadcn/ui and Tailwind set up.",
 	// },
@@ -128,7 +128,7 @@ if (await fs.promises.exists(appDir)) {
 
 await fs.promises.mkdir(appDir)
 
-const templateDir = path.join(import.meta.dir, template)
+const templateDir = path.join(import.meta.dir, "templates", template)
 
 try {
 	await fs.promises.cp(templateDir, appDir, { recursive: true })

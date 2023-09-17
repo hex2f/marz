@@ -3,7 +3,7 @@
 	"module": "index.ts",
 	"main": "index.ts",
 	"type": "module",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"bin": {
 		"create-marz": "./index.ts"
 	},

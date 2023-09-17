@@ -1,15 +1,26 @@
-# create-marz-app
+# create-marz
 
-To install dependencies:
+Set up a new [Marz](https://github.com/hex2f/marz) app in seconds.
 
-```bash
-bun install
-```
-
-To run:
+## With Bun
 
 ```bash
-bun run index.ts
+bun create marz-app
 ```
 
-This project was created using `bun init` in bun v1.0.2. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+## Arguments
+
+```bash
+Options
+  --help, -h     Show this help message
+  --version, -v  Show the version number
+  --template, -t Template to use
+  --name, -n     Name of the app
+  --overwrite    Overwrite existing directory
+  --install, -i  Install dependencies
+
+Examples
+  $ create-marz my-app
+  $ create-marz my-app --template template-barebones
+  $ create-marz my-app --template template-barebones --install --overwrite
+```
