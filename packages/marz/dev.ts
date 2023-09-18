@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import arg from "arg"
+import child_process from "child_process"
 
 const args = arg({
 	"--help": Boolean,
@@ -29,65 +30,39 @@ Examples
 	process.exit(0)
 }
 
-import createRouterFromDirectory, { recursivelyBuildRouterIndex } from "./framework/server/router"
-
 import path from "path"
-import { bundle } from "./framework/bundler"
-import createWorker from "./framework/server/worker"
 import { watch } from "fs"
-import { Server } from "bun"
-
-let worker: Server | undefined = undefined
 
 const outDir = path.resolve(args["--out-dir"] || ".marz")
-const ssrPagesDir = path.resolve(args["--pages-dir"] || "./pages")
-const rscPagesDir = path.resolve(path.join(outDir, "server/routes"))
 
-async function buildAndStartWorker() {
-	if (worker) {
-		worker.stop()
+let child: child_process.ChildProcess | undefined
+
+//             hm.. not the best name 😅
+async function startChildWorker() {
+	if (child) {
+		child.kill()
 	}
-	console.time("total - compile marz app")
 
-	console.time("create ssr router index")
-	const ssrRouterIndex = await recursivelyBuildRouterIndex(ssrPagesDir)
-	console.timeEnd("create ssr router index")
-
-	const { manifest } = await bundle(ssrRouterIndex.bundleEntrypoints, {
-		outDir,
-		publicDir: path.resolve(args["--public-dir"] || "./public"),
+	child = child_process.spawn("bun", ["run", path.join(import.meta.dir, "dev-worker.ts")], {
+		stdio: "inherit",
+		env: {
+			...process.env,
+			MARZ_DEV: "true",
+		},
 	})
 
-	console.time("create rsc router index")
-	const rscRouterIndex = await recursivelyBuildRouterIndex(rscPagesDir)
-	console.timeEnd("create rsc router index")
-
-	console.time("reconcile routes")
-	const ssrRouter = await createRouterFromDirectory(ssrPagesDir, { routerIndex: ssrRouterIndex })
-	const rscRouter = await createRouterFromDirectory(rscPagesDir, { routerIndex: rscRouterIndex })
-	console.timeEnd("reconcile routes")
-
-	console.timeEnd("total - compile marz app")
-
-	console.time("create worker")
-	worker = await createWorker({
-		rscRouter,
-		ssrRouter,
-		manifest,
-		publicDir: path.resolve(path.join(outDir, "client")),
-		port: args["--port"] || 3000,
+	child.on("close", () => {
+		child = undefined
 	})
-	console.timeEnd("create worker")
-	console.log("🚀 running")
 }
 
 watch(".", { recursive: true }, async (event, filename) => {
 	if (event !== "change") return
-
 	if (path.resolve(filename as string).startsWith(outDir)) return
+
 	console.log(`\n📂 Change detected - ${filename}`)
 	console.log("🛠️ Rebuilding...")
-	await buildAndStartWorker()
+	await startChildWorker()
 })
 
-await buildAndStartWorker()
+await startChildWorker()
