@@ -1,0 +1,25 @@
+{
+  "name": "marz-docs",
+  "module": "main.ts",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "latest",
+    "tailwindcss": "^3.3.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "dev": "marz dev"
+  },
+  "dependencies": {
+    "@radix-ui/react-dropdown-menu": "^2.0.5",
+    "@radix-ui/react-slot": "^1.0.2",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.279.0",
+    "marz": "workspace:../marz",
+    "tailwind-merge": "^1.14.0",
+    "tailwindcss-animate": "^1.0.7"
+  }
+}
