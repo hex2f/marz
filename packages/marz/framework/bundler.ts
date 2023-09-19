@@ -55,6 +55,7 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 		root: commonDirPath,
 		outdir: clientOutPath,
 		minify: environment === "production" || minify,
+		publicPath: "./",
 		define: {
 			"process.env.NODE_ENV": `"${environment}"`,
 		},

@@ -15,19 +15,6 @@ export default function Marz({
 			<body>
 				<main id="__MARZ_MOUNT">{children}</main>
 				<script
-					type="importmap"
-					/* this shouldnt be needed, but for some reason imports end up as just
-					   "router.js" in the bundle and im not smart enough to figure it out. */
-
-					// biome-ignore lint/security/noDangerouslySetInnerHtml: this is a static import map, it is not user input
-					dangerouslySetInnerHTML={{
-						__html: `
-						{ "imports": {
-						  "router.js": "${clientRouterScript}"
-						} }`,
-					}}
-				/>
-				<script
 					/* credit: https://github.com/threepointone/server-components-demo/blob/esbuild-take-2/src/Html.js */
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: static script, no user input
 					dangerouslySetInnerHTML={{
