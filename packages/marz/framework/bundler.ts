@@ -2,7 +2,7 @@ import path from "path"
 import fs from "fs/promises"
 
 const environment = process.env.NODE_ENV || "development"
-const minify = process.env.MINIFY === "true"
+const noMinify = process.env.NO_MINIFY === "true"
 const isDebug = process.env.DEBUG === "true"
 
 const transpiler = new Bun.Transpiler({ loader: "tsx" })
@@ -54,7 +54,7 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 		format: "esm",
 		root: commonDirPath,
 		outdir: clientOutPath,
-		minify: environment === "production" || minify,
+		minify: !noMinify,
 		publicPath: "./",
 		define: {
 			"process.env.NODE_ENV": `"${environment}"`,
