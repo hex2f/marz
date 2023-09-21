@@ -16,7 +16,7 @@
 	"bin": {
 		"marz": "cli.ts"
 	},
-	"files": ["framework/", "cli.ts", "build.ts", "dev.ts", "start.ts", "package.json"],
+	"files": ["framework/", "cli.ts", "build.ts", "dev.ts", "dev-worker.ts", "start.ts", "package.json"],
 	"dependencies": {
 		"arg": "^5.0.2",
 		"react": "18.3.0-canary-41f0e9dae-20230907",
