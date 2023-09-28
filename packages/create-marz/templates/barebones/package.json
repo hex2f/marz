@@ -3,7 +3,8 @@
 	"module": "main.ts",
 	"type": "module",
 	"devDependencies": {
-		"bun-types": "latest"
+		"bun-types": "latest",
+		"@types/react": "^18.2.21"
 	},
 	"peerDependencies": {
 		"typescript": "^5.0.0"
@@ -12,6 +13,6 @@
 		"dev": "marz dev"
 	},
 	"dependencies": {
-		"marz": "^0.3.0"
+		"marz": "^0.3.1"
 	}
 }

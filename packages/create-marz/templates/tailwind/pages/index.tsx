@@ -1,6 +1,5 @@
 import { Fragment } from "react"
 import Timer from "@/components/timer"
-import { Link } from "marz/framework/client/router"
 
 import mainCss from "../main.css"
 
@@ -20,7 +19,6 @@ export function Page() {
 			<p>
 				You've been on this page for: <Timer />
 			</p>
-			<Link href="/">About</Link>
 		</Fragment>
 	)
 }

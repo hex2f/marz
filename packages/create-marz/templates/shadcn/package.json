@@ -4,7 +4,9 @@
 	"type": "module",
 	"devDependencies": {
 		"autoprefixer": "^10.4.16",
-		"bun-types": "latest"
+		"bun-types": "latest",
+		"tailwindcss": "^3.3.3",
+		"@types/react": "^18.2.21"
 	},
 	"peerDependencies": {
 		"typescript": "^5.0.0"
@@ -13,7 +15,7 @@
 		"dev": "marz dev"
 	},
 	"dependencies": {
-		"marz": "^0.3.0",
+		"marz": "^0.3.1",
 		"@radix-ui/react-dropdown-menu": "^2.0.5",
 		"@radix-ui/react-slot": "^1.0.2",
 		"class-variance-authority": "^0.7.0",

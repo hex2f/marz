@@ -5,7 +5,8 @@
 	"devDependencies": {
 		"autoprefixer": "^10.4.16",
 		"bun-types": "latest",
-		"tailwindcss": "^3.3.3"
+		"tailwindcss": "^3.3.3",
+		"@types/react": "^18.2.21"
 	},
 	"peerDependencies": {
 		"typescript": "^5.0.0"
@@ -14,7 +15,7 @@
 		"dev": "marz dev"
 	},
 	"dependencies": {
-		"marz": "^0.3.0",
+		"marz": "^0.3.1",
 		"clsx": "^2.0.0",
 		"tailwind-merge": "^1.14.0"
 	}

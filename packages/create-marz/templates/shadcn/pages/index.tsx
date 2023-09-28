@@ -1,7 +1,6 @@
 import { Fragment } from "react"
 import Timer from "@/components/timer"
 import { Button } from "@/components/ui/button"
-import { Link } from "marz/framework/client/router"
 
 import mainCss from "../main.css"
 
@@ -22,7 +21,6 @@ export function Page() {
 				You've been on this page for: <Timer />
 			</p>
 			<Button>shadcn/ui button</Button>
-			<Link href="/">About</Link>
 		</Fragment>
 	)
 }

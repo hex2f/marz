@@ -38,7 +38,9 @@ export async function bundle(
 	const clientOutPath = path.join(outPath, "client")
 
 	await fs.mkdir(clientOutPath)
-	if (publicDir) await fs.cp(publicDir, clientOutPath, { recursive: true })
+	if (publicDir && (await fs.exists(publicDir))) {
+		await fs.cp(publicDir, clientOutPath, { recursive: true })
+	}
 
 	await fs.mkdir(path.join(outPath, "server"))
 	await fs.mkdir(path.join(outPath, "server", "routes"))
