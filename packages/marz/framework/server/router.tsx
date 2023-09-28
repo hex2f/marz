@@ -1,3 +1,4 @@
+import { match } from "assert"
 import { type Dirent } from "fs"
 import { readdir } from "fs/promises"
 import type React from "react"
@@ -29,6 +30,8 @@ export type Router = AsyncReturnType<typeof createRouterFromDirectory>
 
 export type PageRoute = {
 	type: "page"
+	file: string
+	Head?: React.FC<{ params: Record<string, string> }>
 	Page?: React.FC<{ params: Record<string, string> }>
 	Layout?: React.FC<{ params: Record<string, string> }>
 }
@@ -37,6 +40,7 @@ type APIRouteHandler = (req: Request, params: Record<string, string>) => Promise
 
 export type APIRoute = {
 	type: "api"
+	file: string
 	GET?: APIRouteHandler
 	POST?: APIRouteHandler
 	PUT?: APIRouteHandler
@@ -44,7 +48,9 @@ export type APIRoute = {
 	DELETE?: APIRouteHandler
 }
 
-export type Route = APIRoute | PageRoute | { type: "none" }
+export type NoneRoute = { type: "none"; file: string }
+
+export type Route = APIRoute | PageRoute | NoneRoute
 
 export type RouteNode = {
 	route?: Route
@@ -117,31 +123,12 @@ export async function recursivelyBuildRouterIndex(
 	await Promise.all(
 		files.map(async (file) => {
 			const fileName = file.name.replace(/\.(js|jsx|ts|tsx)$/, "")
-			const routeExports = (await import(`${directory}/${file.name}`)) as Route
-
-			let route = { type: "none" } as Route
-
-			if ("Page" in routeExports || "Layout" in routeExports) {
-				route = { type: "page", Page: routeExports.Page, Layout: routeExports.Layout }
-			}
-
-			if (
-				"GET" in routeExports ||
-				"POST" in routeExports ||
-				"PUT" in routeExports ||
-				"PATCH" in routeExports ||
-				"DELETE" in routeExports
-			) {
-				if (route.type === "page") {
-					throw new Error(`A page cannot be both a page and an API route.\n      in ${file.name}`)
-				}
-				route = { ...routeExports, type: "api" }
-			}
+			const route = { type: "none", file: `${directory}/${file.name}` } as Route
 
 			// TODO: Layouts
 
 			if (fileName === "index") {
-				node.route = routeExports
+				// node.route = routeExports
 				regexes.push({
 					regex: new RegExp(`^${currentPath.join("/")}$`),
 					pathLength: currentPath.length,
@@ -188,4 +175,39 @@ function matchRoute(path: string, regexes: Array<MatchableRoute<Route>>): Matche
 			return { route, match }
 		}
 	}
+}
+
+export async function hydrateMatchableRoutesImports(regexes: Array<MatchableRoute<Route>>) {
+	await Promise.all(
+		regexes.map(async (matchable) => {
+			const hydratedMatchable = matchable
+			if (matchable.route.type !== "none") return matchable
+			const routeExports = (await import(matchable.route.file)) as Route
+
+			if ("Page" in routeExports || "Layout" in routeExports) {
+				hydratedMatchable.route = {
+					type: "page",
+					file: hydratedMatchable.route.file,
+					Head: routeExports.Head,
+					Page: routeExports.Page,
+					Layout: routeExports.Layout,
+				}
+			}
+
+			if (
+				"GET" in routeExports ||
+				"POST" in routeExports ||
+				"PUT" in routeExports ||
+				"PATCH" in routeExports ||
+				"DELETE" in routeExports
+			) {
+				if (hydratedMatchable.route.type === "page") {
+					throw new Error(
+						`A page cannot be both a page and an API route.\n      in ${hydratedMatchable.route.file ?? "unknown"}`,
+					)
+				}
+				hydratedMatchable.route = { ...routeExports, type: "api" }
+			}
+		}),
+	)
 }

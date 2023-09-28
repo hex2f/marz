@@ -29,10 +29,14 @@ Examples
 	process.exit(0)
 }
 
-import createRouterFromDirectory, { recursivelyBuildRouterIndex } from "./framework/server/router"
+import createRouterFromDirectory, {
+	hydrateMatchableRoutesImports,
+	recursivelyBuildRouterIndex,
+} from "./framework/server/router"
 
 import path from "path"
 import createWorker from "./framework/server/worker"
+import cssBundlePlugin from "./framework/css-bundle-plugin"
 
 console.time("total - compile marz app")
 const outDir = path.resolve(args["--out-dir"] || ".marz")
@@ -51,9 +55,25 @@ if (!manifestFile) {
 }
 const manifest = JSON.parse(await manifestFile.text())
 
+const cssMapFile = await Bun.file(path.join(outDir, "css-map.json"))
+if (!cssMapFile) {
+	console.error("css-map.json not found, please run `marz build` first.")
+	process.exit(1)
+}
+const cssMap = new Map<string, string>(JSON.parse(await cssMapFile.text()))
+
+console.time("install css-bundle-plugin")
+cssBundlePlugin(cssMap)
+console.timeEnd("install css-bundle-plugin")
+
 console.time("create rsc router index")
 const rscRouterIndex = await recursivelyBuildRouterIndex(rscPagesDir)
 console.timeEnd("create rsc router index")
+
+console.time("hydrate matchable routes imports")
+await hydrateMatchableRoutesImports(ssrRouterIndex.regexes)
+await hydrateMatchableRoutesImports(rscRouterIndex.regexes)
+console.timeEnd("hydrate matchable routes imports")
 
 console.time("reconcile routes")
 const ssrRouter = await createRouterFromDirectory(ssrPagesDir, { routerIndex: ssrRouterIndex })

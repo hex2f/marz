@@ -3,7 +3,7 @@ import { Manifest } from "../bundler"
 import { MatchedRoute, PageRoute, Router } from "./router"
 import { renderToReadableStream } from "react-dom/server"
 import MarzMount from "./mount"
-import { StrictMode } from "react"
+import React, { StrictMode } from "react"
 
 export default async function renderSSR(
 	url: URL,
@@ -25,7 +25,11 @@ export default async function renderSSR(
 
 	const mount = (
 		<StrictMode>
-			<MarzMount clientEntryScript={clientEntryScript} clientRouterScript={clientRouterScript}>
+			<MarzMount
+				head={route.route.route.Head ? <route.route.route.Head params={params} /> : <title>Marz</title>}
+				clientEntryScript={clientEntryScript}
+				clientRouterScript={clientRouterScript}
+			>
 				<route.route.route.Page params={params} />
 			</MarzMount>
 		</StrictMode>

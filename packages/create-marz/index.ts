@@ -14,14 +14,14 @@ const availableTemplates = {
 		name: "Barebones",
 		description: "A barebones Marz app with no other dependencies.",
 	},
-	// "tailwind": {
-	// 	name: "Tailwind",
-	// 	description: "A Marz app with Tailwind CSS.",
-	// },
-	// "shadcn": {
-	// 	name: "shadcn/ui",
-	// 	description: "A Marz app with shadcn/ui and Tailwind set up.",
-	// },
+	tailwind: {
+		name: "Tailwind",
+		description: "A Marz app with Tailwind CSS.",
+	},
+	shadcn: {
+		name: "shadcn/ui",
+		description: "A Marz app with shadcn/ui and Tailwind set up.",
+	},
 }
 
 const args = arg({

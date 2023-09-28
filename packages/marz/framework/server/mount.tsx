@@ -2,16 +2,13 @@ import React from "react"
 
 export default function Marz({
 	children,
+	head,
 	clientEntryScript,
 	clientRouterScript,
-}: { children: React.ReactNode; clientEntryScript: string; clientRouterScript: string }) {
+}: { children: React.ReactNode; head: React.ReactNode; clientEntryScript: string; clientRouterScript: string }) {
 	return (
 		<html lang="en">
-			<head>
-				<title>Marz</title>
-				{/* TODO: "Head" component to let user add stuff to head */}
-				<link rel="stylesheet" href="/main.css" />
-			</head>
+			<head>{head}</head>
 			<body>
 				<main id="__MARZ_MOUNT">{children}</main>
 				<script

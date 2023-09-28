@@ -1,6 +1,6 @@
 {
 	"name": "marz",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"main": "cli.ts",
 	"type": "module",
 	"devDependencies": {
@@ -19,6 +19,7 @@
 	"files": ["framework/", "cli.ts", "build.ts", "dev.ts", "dev-worker.ts", "start.ts", "package.json"],
 	"dependencies": {
 		"arg": "^5.0.2",
+		"postcss": "^8.4.30",
 		"react": "18.3.0-canary-41f0e9dae-20230907",
 		"react-dom": "18.3.0-canary-41f0e9dae-20230907",
 		"react-server-dom-webpack": "18.3.0-canary-41f0e9dae-20230907"

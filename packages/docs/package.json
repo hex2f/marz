@@ -3,6 +3,7 @@
   "module": "main.ts",
   "type": "module",
   "devDependencies": {
+    "autoprefixer": "^10.4.16",
     "bun-types": "latest",
     "tailwindcss": "^3.3.3"
   },

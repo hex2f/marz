@@ -8,6 +8,7 @@ const args = arg({
 	"--pages-dir": String,
 	"--public-dir": String,
 	"--out-dir": String,
+	"--postcss": String,
 	"--port": Number,
 
 	"-h": "--help",
@@ -21,6 +22,7 @@ Options
   --pages-dir  <path> Default: ./pages
   --public-dir <path> Default: ./public
   --out-dir    <path> Default: .marz
+  --postcss    <path> Default: ./postcss.config.js
   --port       <port> Default: 3000
 
 Examples

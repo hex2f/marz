@@ -25,7 +25,7 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 export function ThemeProvider({
 	children,
 	defaultTheme = "system",
-	storageKey = "vite-ui-theme",
+	storageKey = "marz-theme",
 	...props
 }: ThemeProviderProps) {
 	const [theme, setTheme] = useState<Theme>(() => defaultTheme)
@@ -37,10 +37,10 @@ export function ThemeProvider({
 
 		if (theme === "system") {
 			const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-
 			root.classList.add(systemTheme)
 			return
 		}
+		console.log(theme)
 
 		root.classList.add(theme)
 	}, [theme])

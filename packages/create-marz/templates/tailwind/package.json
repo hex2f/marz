@@ -1,0 +1,21 @@
+{
+	"name": "marz-template-tailwind",
+	"module": "main.ts",
+	"type": "module",
+	"devDependencies": {
+		"autoprefixer": "^10.4.16",
+		"bun-types": "latest",
+		"tailwindcss": "^3.3.3"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	},
+	"scripts": {
+		"dev": "marz dev"
+	},
+	"dependencies": {
+		"marz": "^0.3.0",
+		"clsx": "^2.0.0",
+		"tailwind-merge": "^1.14.0"
+	}
+}

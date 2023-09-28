@@ -4,10 +4,10 @@ import { ThemeToggle } from "./theme-toggle"
 
 export default function NavBar() {
 	return (
-		<nav className="border-b border-b-gray-200 py-4">
+		<nav className="border-b border-b-gray-200 dark:border-b-gray-800 py-4">
 			<div className="max-w-7xl mx-auto flex items-center">
 				<div className="flex gap-2 items-center">
-					<img src="/marz.svg" alt="Marz" className="h-5" />
+					<img src="/marz.svg" alt="Marz" className="h-5 dark:invert" />
 				</div>
 
 				<div className="flex gap-4 ml-8 font-inter text-sm font-medium flex-1">

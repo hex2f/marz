@@ -1,5 +1,6 @@
 import path from "path"
 import fs from "fs/promises"
+import Postcss from "postcss"
 
 const environment = process.env.NODE_ENV || "development"
 const noMinify = process.env.NO_MINIFY === "true"
@@ -9,7 +10,18 @@ const transpiler = new Bun.Transpiler({ loader: "tsx" })
 
 export type Manifest = Record<string, { id: string; chunks: string[]; name: string }>
 
-export async function bundle(entrypoints: string[], { outDir, publicDir }: { outDir: string; publicDir?: string }) {
+export async function bundle(
+	entrypoints: string[],
+	{
+		outDir,
+		postcssConfig,
+		publicDir,
+	}: {
+		outDir: string
+		postcssConfig?: { plugins: Postcss.AcceptedPlugin[] }
+		publicDir?: string
+	},
+) {
 	const outPath = path.resolve(outDir)
 	try {
 		await fs.rm(outPath, { recursive: true })
@@ -19,8 +31,9 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 	await fs.mkdir(outPath)
 
 	const ignoredClientDeps = new Set<string>([])
-	const clientDeps = await resolveClientComponentDependencies(entrypoints, ignoredClientDeps)
+	const { clientDeps, cssImports } = await resolveClientComponentDependencies(entrypoints, ignoredClientDeps)
 	if (isDebug) console.log("client deps", clientDeps)
+	if (isDebug) console.log("css imports", cssImports)
 
 	const clientOutPath = path.join(outPath, "client")
 
@@ -45,6 +58,26 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 	if (isDebug) console.log("client entry", clientEntry)
 	if (isDebug) console.log([clientEntry, ...Array.from(clientDeps.values()).map((dep) => dep.entrypoint)])
 
+	console.time("bundle css")
+	const cssFiles = Array.from(Object.values(cssImports)).flat()
+	const postcss = Postcss(postcssConfig?.plugins ?? [])
+	const cssOutDir = path.join(outPath, "client", "css")
+	const cssMap = new Map<string, string>()
+	await fs.mkdir(cssOutDir)
+	const hasher = new Bun.CryptoHasher("blake2b256")
+	for (const cssFile of cssFiles) {
+		const css = await Bun.file(cssFile).text()
+		hasher.update(css)
+		// eh, collisions will be very very rare and id rather have a shorter filename
+		const fileHash = hasher.digest("base64").slice(0, 24)
+		const cssFileOutPath = path.join(cssOutDir, `${fileHash}.css`)
+		const result = await postcss.process(css, { from: cssFile, to: cssFileOutPath })
+		await Bun.write(cssFileOutPath, result.css)
+		cssMap.set(cssFile, cssFileOutPath.slice(clientOutPath.length))
+	}
+	await Bun.write(path.join(outDir, "css-map.json"), JSON.stringify(Array.from(cssMap.entries()), null, 2))
+	console.timeEnd("bundle css")
+
 	console.time("bundle client deps")
 	const client = await Bun.build({
 		entrypoints: [clientEntry, ...Array.from(clientDeps.values()).map((dep) => dep.entrypoint)],
@@ -59,7 +92,20 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 		define: {
 			"process.env.NODE_ENV": `"${environment}"`,
 		},
-		plugins: [],
+		plugins: [
+			{
+				name: "postcss",
+				setup(build) {
+					build.onLoad({ filter: /\.css$/ }, async (args) => {
+						if (!cssMap.has(args.path)) throw new Error("Failed to reslove css import")
+						return {
+							contents: cssMap.get(args.path) ?? "",
+							loader: "text",
+						}
+					})
+				},
+			},
+		],
 	})
 	if (!client.success) {
 		console.error(client.logs)
@@ -169,6 +215,17 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 					})
 				},
 			},
+			{
+				name: "postcss",
+				setup(build) {
+					build.onLoad({ filter: /\.css$/ }, async (args) => {
+						return {
+							contents: cssMap.get(args.path) ?? "",
+							loader: "text",
+						}
+					})
+				},
+			},
 		],
 	})
 
@@ -179,7 +236,7 @@ export async function bundle(entrypoints: string[], { outDir, publicDir }: { out
 
 	console.timeEnd("bundle server routes")
 
-	return { manifest }
+	return { manifest, cssMap }
 }
 
 function isClientComponent(code: string) {
@@ -194,13 +251,17 @@ export async function resolveClientComponentDependencies(
 	clientDeps: Set<ClientDep> = new Set(),
 	resolutionCache: Map<string, string> = new Map(),
 	processedFiles: Set<string> = new Set(),
+	cssImports: Record<string, string[]> = {},
+	originalEntry: string | undefined = undefined,
 	depth = 0,
-): Promise<Set<ClientDep>> {
+): Promise<{ clientDeps: Set<ClientDep>; cssImports: Record<string, string[]> }> {
 	if (depth > 25) {
 		console.warn("returning early from resolveClientComponentDependencies. Too many levels of dependency.")
-		return clientDeps
+		return { clientDeps, cssImports }
 	}
+
 	for (const entrypoint of entrypoints) {
+		const entryKey = originalEntry ?? entrypoint
 		if (processedFiles.has(entrypoint) || ignoredFiles.has(entrypoint)) {
 			continue
 		}
@@ -215,13 +276,21 @@ export async function resolveClientComponentDependencies(
 
 		processedFiles.add(entrypoint)
 
+		const parent = entrypoint.split("/").slice(0, -1).join("/")
+
 		const deps = (
 			await Promise.all(
 				depScan.imports.map(async (dep) => {
 					try {
+						if (dep.path.endsWith(".css")) {
+							if (!cssImports[entryKey]) cssImports[entryKey] = []
+							const resolved = await Bun.resolve(dep.path, parent)
+							cssImports[entryKey].push(resolved)
+							return
+						}
 						let resolved = resolutionCache.get(dep.path)
 						if (!resolved) {
-							resolved = await Bun.resolve(dep.path, entrypoint.split("/").slice(0, -1).join("/"))
+							resolved = await Bun.resolve(dep.path, parent)
 							resolutionCache.set(dep.path, resolved)
 						}
 						return resolved
@@ -232,8 +301,19 @@ export async function resolveClientComponentDependencies(
 			)
 		).filter(Boolean) as string[]
 
-		await resolveClientComponentDependencies(deps, ignoredFiles, clientDeps, resolutionCache, processedFiles, depth + 1)
+		if (deps.length > 0) {
+			await resolveClientComponentDependencies(
+				deps,
+				ignoredFiles,
+				clientDeps,
+				resolutionCache,
+				processedFiles,
+				cssImports,
+				entryKey,
+				depth + 1,
+			)
+		}
 	}
 
-	return clientDeps
+	return { clientDeps, cssImports }
 }
